@@ -1,6 +1,6 @@
 # Pathfinding Algorithm Visualizer
 
-An interactive Python application for visualizing and comparing pathfinding algorithms like A*, Dijkstra's, BFS, and Greedy Best-First Search using the Pygame library.
+An interactive Python application for visualizing and comparing pathfinding algorithms like A*, Dijkstra's, BFS, and Greedy Best-First Search. This tool demonstrates how different algorithms handle weighted graphs versus unweighted exploration.
 
 ![Screenshot of the pathfinding visualizer in action]
 *(A screenshot or GIF will be added here once the project is functional)*
@@ -9,15 +9,15 @@ An interactive Python application for visualizing and comparing pathfinding algo
 
 ## Key Features
 
-- **Interactive Grid:** Create your own mazes by drawing barrier walls with the mouse.
-- **Multiple Algorithms:** Visualize how different algorithms "think":
-    - **A* (A-Star):** The most efficient pathfinding algorithm using heuristics.
-    - **Dijkstra's Algorithm:** Guarantees the shortest path but explores every direction evenly.
-    - **Breadth-First Search (BFS):** A fundamental algorithm that guarantees the shortest path in unweighted grids but explores blindly.
-    - **Greedy Best-First Search:** A faster, heuristic-heavy algorithm that doesn't always guarantee the shortest path.
-- **Real-Time Visualization:** Watch the algorithms explore the grid step-by-step with color-coded nodes (Open, Closed, Path).
-- **Performance Benchmarking:** Real-time counters display **Nodes Visited** and **Path Length** to objectively compare the efficiency of each algorithm.
-- **Soft Reset:** Automatically clears the previous path when running a new algorithm, allowing for rapid comparison on the same maze.
+- **Interactive Grid:** Create your own mazes by drawing barrier walls and start/end points.
+- **Weighted Nodes (Traffic):** Draw "Traffic" nodes (Brown) that cost more to traverse. This visually demonstrates the intelligence of Dijkstra's algorithm vs. the blindness of BFS.
+- **Random Maze Generator:** Instantly generate a complex map with barriers and traffic to test algorithms.
+- **Multiple Algorithms:**
+    - **A* (A-Star):** The gold standard for pathfinding; uses heuristics to be fast and accurate.
+    - **Dijkstra's Algorithm:** Guarantees the shortest path and intelligently navigates around high-cost traffic.
+    - **Breadth-First Search (BFS):** Guarantees the shortest path in unweighted grids but fails to account for traffic costs.
+    - **Greedy Best-First Search:** Extremely fast but not guaranteed to find the shortest path.
+- **Real-Time Benchmarking:** Live counters for **Nodes Visited** and **Path Length** allow for objective comparison of efficiency.
 
 ## Tech Stack
 
@@ -41,19 +41,23 @@ An interactive Python application for visualizing and comparing pathfinding algo
 
 ## How to Use
 
-1.  Run the main application:
+1.  Run the application:
     ```bash
     python main.py
     ```
-2.  **Draw the Grid:**
-    - **Left-Click:** Place the **Start Node** (Orange) first, then the **End Node** (Purple), and finally draw **Barrier Walls** (Black).
-    - **Right-Click:** Erase any node you click on.
+
+2.  **Draw the Map:**
+    - **Left-Click:** Place **Start** (Orange), then **End** (Purple), then **Barriers** (Black).
+    - **Middle-Click (or Hold 'T' + Left-Click):** Draw **Traffic** (Brown). These nodes have a weight of 5, forcing smart algorithms to find a path around them.
+    - **Right-Click:** Erase any node.
+    - **Press 'M':** Generate a random maze with walls and traffic.
 
 3.  **Run an Algorithm:**
-    - Press **SPACE** to run **A* Algorithm**.
-    - Press **D** to run **Dijkstra's Algorithm**.
-    - Press **G** to run **Greedy Best-First Search**.
-    - Press **B** to run **Breadth-First Search**.
+    - **SPACE:** Run A* Algorithm.
+    - **D:** Run Dijkstra's Algorithm.
+    - **B:** Run Breadth-First Search (BFS).
+    - **G:** Run Greedy Best-First Search.
 
-4.  **Reset:**
-    - Press **C** to clear the entire board and start over.
+4.  **Controls:**
+    - **C:** Clear the entire board.
+    - **Algorithms automatically clear the previous path** when you run a new one, making it easy to compare results on the same map.
