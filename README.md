@@ -2,7 +2,6 @@
 
 An interactive Python application for visualizing and comparing pathfinding algorithms like A*, Dijkstra's, BFS, and Greedy Best-First Search. This tool demonstrates how different algorithms handle weighted graphs versus unweighted exploration.
 
-![Screenshot of the pathfinding visualizer in action]
 ![Pathfinding Demo](assets/demo.gif)
 
 ---
@@ -12,6 +11,7 @@ An interactive Python application for visualizing and comparing pathfinding algo
 - **Interactive Grid:** Create your own mazes by drawing barrier walls and start/end points.
 - **Weighted Nodes (Traffic):** Draw "Traffic" nodes (Brown) that cost more to traverse. This visually demonstrates the intelligence of Dijkstra's algorithm vs. the blindness of BFS.
 - **Random Maze Generator:** Instantly generate a complex map with barriers and traffic to test algorithms.
+- **Instruction Menu:** Built-in help overlay (press 'I') to view controls without leaving the application.
 - **Multiple Algorithms:**
     - **A* (A-Star):** The gold standard for pathfinding; uses heuristics to be fast and accurate.
     - **Dijkstra's Algorithm:** Guarantees the shortest path and intelligently navigates around high-cost traffic.
@@ -59,5 +59,6 @@ An interactive Python application for visualizing and comparing pathfinding algo
     - **G:** Run Greedy Best-First Search.
 
 4.  **Controls:**
+    - **I:** Toggle the Instructions / Help Menu.
     - **C:** Clear the entire board.
     - **Algorithms automatically clear the previous path** when you run a new one, making it easy to compare results on the same map.
