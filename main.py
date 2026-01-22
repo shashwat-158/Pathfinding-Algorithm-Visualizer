@@ -336,6 +336,45 @@ def greedy_bfs(draw, grid, start, end):
 
     return False
 
+def bfs(draw, grid, start, end):
+    # BFS uses a simple Queue (FIFO) logic. 
+    # We can use a list and always take the first element (pop(0)).
+    queue = [start]
+    
+    # We need to keep track of visited nodes so we don't process them twice
+    visited = {start}
+    
+    came_from = {}
+
+    while len(queue) > 0:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        # Pop the first element from the list (First-In, First-Out)
+        current = queue.pop(0)
+
+        if current == end:
+            reconstruct_path(came_from, end, draw)
+            end.make_end()
+            return True
+
+        for neighbor in current.neighbors:
+            # Simple logic: If we haven't seen it, add it to the queue
+            if neighbor not in visited:
+                came_from[neighbor] = current
+                visited.add(neighbor)
+                queue.append(neighbor)
+                neighbor.make_open()
+
+        draw()
+
+        if current != start:
+            current.make_closed()
+
+    return False
+
 # The Main Application Loop
 def main():
 
@@ -360,8 +399,8 @@ def main():
 
             if event.type == pygame.KEYDOWN:
                 if start and end:
-                    # Common helper to update neighbors
-                    if event.key in [pygame.K_SPACE, pygame.K_d, pygame.K_g]:
+                    # Update neighbors for all algorithms
+                    if event.key in [pygame.K_SPACE, pygame.K_d, pygame.K_g, pygame.K_b]:
                         for row in grid:
                             for node in row:
                                 node.update_neighbours(grid)
@@ -374,15 +413,19 @@ def main():
                     if event.key == pygame.K_d:
                         dijkstra(lambda: draw(WIN, grid, ROWS, WIDTH), grid, start, end)
 
-                    # G = Greedy Best-First
+                    # G = Greedy BFS
                     if event.key == pygame.K_g:
                         greedy_bfs(lambda: draw(WIN, grid, ROWS, WIDTH), grid, start, end)
+
+                    # B = Breadth-First Search
+                    if event.key == pygame.K_b:
+                        bfs(lambda: draw(WIN, grid, ROWS, WIDTH), grid, start, end)
 
                 # Clear screen
                 if event.key == pygame.K_c:
                     start = None
                     end = None
-                    grid = make_grid(ROWS, WIDTH)  
+                    grid = make_grid(ROWS, WIDTH)
             
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # mouse click on screen returns tuple(0,0,0) 
