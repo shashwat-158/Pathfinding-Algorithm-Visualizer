@@ -1,6 +1,7 @@
 # main.py
 
 # Importing necessary libraries
+import random
 import pygame
 import sys # This lets us close the window
 from queue import PriorityQueue
@@ -26,6 +27,7 @@ ORANGE = (255, 165, 0) # Start node
 PURPLE = (128, 0, 128)  # End node
 BLACK = (0, 0, 0)       # Barrier node
 GREY = (128, 128, 128)  # Grid lines
+BROWN = (165, 42, 42) # Traffic node
 
 
 # ------------------- NODE CLASS -------------------
@@ -41,11 +43,15 @@ class Node:
         self.neighbors = []
         self.width = width
         self.total_rows = total_rows
+        self.weight = 1
 
     # --- Methods for checking the state of the Node ---
     def get_pos(self):
         return self.row, self.col
 
+    def is_traffic(self):
+        return self.color == GREY
+    
     def is_barrier(self):
         return self.color == BLACK
 
@@ -58,15 +64,22 @@ class Node:
     # --- Methods for changing the state of the Node ---
     def reset(self):
         self.color = WHITE
+        self.weight = 1
 
     def make_start(self):
         self.color = ORANGE
+        self.weight = 1
 
     def make_end(self):
         self.color = PURPLE
 
     def make_barrier(self):
         self.color = BLACK
+        self.weight = 1
+
+    def make_traffic(self):
+        self.color = BROWN
+        self.weight = 5 # Traffic costs 5x more to move through
 
     def make_open(self):
         self.color = GREEN # Node is in the "open set"
@@ -123,7 +136,14 @@ def clear_path(grid):
     for row in grid:
         for node in row:
             # If the node is NOT a start, end, or barrier, reset it to white
-            if not (node.is_start() or node.is_end() or node.is_barrier()):
+            if (node.is_start() or node.is_end() or node.is_barrier()):
+                continue
+            # If the node has weight > 1, it is traffic. 
+            # We restore its color to BROWN.
+            if node.weight > 1:
+                node.make_traffic()
+            else:
+                # Otherwise, it's just a normal visited node, so we reset it to WHITE.
                 node.reset()
 
 # helper function to draw grid lines
@@ -137,10 +157,37 @@ def draw_grid(win, rows, width):
     for j in range(rows):
         pygame.draw.line(win, GREY, (j*gap, 0), (j*gap, width))
 
+def generate_random_maze(grid, draw):
+    # 1. Reset the grid (clearing old walls/traffic)
+    for row in grid:
+        for node in row:
+            if not (node.is_start() or node.is_end()):
+                node.reset()
+
+    # 2. Place new items
+    for row in grid:
+        for node in row:
+            # Skip start and end nodes
+            if node.is_start() or node.is_end():
+                continue
+
+            # Generate a random number between 0.0 and 1.0
+            r = random.random()
+
+            # 25% Chance for a Wall (Barrier)
+            if r < 0.25:
+                node.make_barrier()
+            
+            # 10% Chance for Traffic (Weight)
+            # We check < 0.35 because 0.25 + 0.10 = 0.35
+            elif r < 0.35:
+                node.make_traffic()
+    
+    draw()
 
 # master function to handle all visual updates
 # updated draw function to accept 'visited_nodes'
-def draw(win, grid, rows, width, visited_nodes=0, path_len=0):
+def draw(win, grid, rows, width, visited_nodes=0, path_len=0, algo_name=""):
     # wiping window
     win.fill(WHITE)
     # looping through every nodes inside grid
@@ -152,12 +199,17 @@ def draw(win, grid, rows, width, visited_nodes=0, path_len=0):
     draw_grid(win, rows, width)
 
     # Text 1: Nodes Visited
-    text_visited = FONT.render(f"Nodes Visited: {visited_nodes}", 1, BLACK)
+    text_visited = FONT.render(f"Nodes Visited: {visited_nodes}", 1, PURPLE)
     win.blit(text_visited, (10, 10))
 
     # Text 2: Path Length
-    text_path = FONT.render(f"Path Length: {path_len}", 1, BLACK)
+    text_path = FONT.render(f"Path Length: {path_len}", 1, PURPLE)
     win.blit(text_path, (10, 35)) # Draw it slightly below the first text
+
+    # Text 3: Algorithm Name (Displayed in Red for visibility)
+    text_algo = FONT.render(f"Algorithm: {algo_name}", 1, ORANGE)
+    win.blit(text_algo, (10, 60)) # Draw it below Path Length
+
     # updating the screen to show the result
     pygame.display.update()
 
@@ -238,8 +290,8 @@ def algorithm(draw, grid, start, end):
         # Check all neighbors of the current node
         for neighbor in current.neighbors:
             # Calculate the temporary G-score (current G + distance to neighbor)
-            # Distance is always 1 in our grid
-            temp_g_score = g_score[current] + 1
+            # The cost to move to the neighbor is the neighbor's weight
+            temp_g_score = g_score[current] + neighbor.weight
 
             # If this new path is shorter than the previous known path to this neighbor
             if temp_g_score < g_score[neighbor]:
@@ -298,7 +350,8 @@ def dijkstra(draw, grid, start, end):
             return True, nodes_visited, path_len
 
         for neighbor in current.neighbors:
-            temp_g_score = g_score[current] + 1
+            # The cost to move to the neighbor is the neighbor's weight
+            temp_g_score = g_score[current] + neighbor.weight
 
             if temp_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
@@ -319,6 +372,7 @@ def dijkstra(draw, grid, start, end):
     return False, 0, 0
 
 def greedy_bfs(draw, grid, start, end):
+    # GREEDY IGNORES WEIGHTS (Only cares about H-score)
     count = 0
     open_set = PriorityQueue()
     # Priority is purely the H-score (heuristic)
@@ -369,6 +423,7 @@ def greedy_bfs(draw, grid, start, end):
     return False, 0, 0
 
 def bfs(draw, grid, start, end):
+    # BFS IGNORES WEIGHTS (Treats everything as 1 step)
     # BFS uses a simple Queue (FIFO) logic. 
     # We can use a list and always take the first element (pop(0)).
     queue = [start]
@@ -423,11 +478,12 @@ def main():
     end = None
     visited_nodes = 0
     path_len = 0
+    algo_name = "Pick an Algorithm" # Default text
 
     run = True
     while run:
         # drawing the grid on screen
-        draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len)
+        draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name)
         # This loop is the "ears" of the program. It listens for user actions.
         for event in pygame.event.get():
             # If the user clicks the 'X' button on the window...
@@ -445,39 +501,56 @@ def main():
 
                     # SPACE = A*
                     if event.key == pygame.K_SPACE:
+                        algo_name = "A* Algorithm"
                         _, visited_nodes, path_len = algorithm(
-                            lambda visited_nodes=visited_nodes, path_len=path_len: draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len), 
+                            lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
+                            draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
                             grid, start, end
                         )
                     
                     # D = Dijkstra
                     if event.key == pygame.K_d:
+                        algo_name = "Dijkstra's Algorithm"
                         _, visited_nodes, path_len = dijkstra(
-                            lambda visited_nodes=visited_nodes, path_len=path_len: draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len), 
+                            lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
+                            draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
                             grid, start, end
                         )
 
                     # G = Greedy BFS
                     if event.key == pygame.K_g:
+                        algo_name = "Greedy Best-First Search"
                         _, visited_nodes, path_len = greedy_bfs(
-                            lambda visited_nodes=visited_nodes, path_len=path_len: draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len), 
+                            lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
+                            draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
                             grid, start, end
                         )
 
                     # B = Breadth-First Search
                     if event.key == pygame.K_b:
+                        algo_name = "Breadth-First Search"
                         _, visited_nodes, path_len = bfs(
-                            lambda visited_nodes=visited_nodes, path_len=path_len: draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len), 
+                            lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
+                            draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
                             grid, start, end
                         )
 
-                # Clear screen
+                # Clear screen ('C')
                 if event.key == pygame.K_c:
                     start = None
                     end = None
                     grid = make_grid(ROWS, WIDTH)
                     visited_nodes = 0
                     path_len = 0
+                    algo_name = "Pick an Algorithm"
+                
+                # Generate Random Maze ('M')
+                if event.key == pygame.K_m:
+                    # Reset stats so the new maze looks clean
+                    visited_nodes = 0
+                    path_len = 0
+                    algo_name = "Pick an Algorithm"
+                    generate_random_maze(grid, lambda: draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name))
             
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # mouse click on screen returns tuple(0,0,0) 
@@ -486,22 +559,28 @@ def main():
                 pos = pygame.mouse.get_pos()
                 row, col = get_clicked_pos(pos, ROWS, WIDTH)
                 node = grid[row][col]
+                keys = pygame.key.get_pressed() # Check keyboard state
 
                 # first value will be 1 on left click
                 if mouse_buttons[0]:
+                    # Option 1: Holding 'T' + Left Click -> Make Traffic
+                    if keys[pygame.K_t]:
+                         if not node.is_start() and not node.is_end() and not node.is_barrier():
+                            node.make_traffic()
                     # Only make it the start node if the end node isn't there yet
                     # AND if the clicked node isn't already the end node.
-                    if not start and node != end:
-                        start = node
-                        start.make_start()
-                    # Only make it the end node if the start node already exists
-                    # AND if the clicked node isn't already the start node.
-                    elif not end and node != start:
-                        end = node
-                        end.make_end()
-                    # Only make it a barrier if it's not the start or end node.
-                    elif node != end and node != start:
-                        node.make_barrier()
+                    else:
+                        if not start and node != end:
+                            start = node
+                            start.make_start()
+                        # Only make it the end node if the start node already exists
+                        # AND if the clicked node isn't already the start node.
+                        elif not end and node != start:
+                            end = node
+                            end.make_end()
+                        # Only make it a barrier if it's not the start or end node.
+                        elif node != end and node != start:
+                            node.make_barrier()
                 # If right mouse button was clicked
                 elif mouse_buttons[2]:
                     # This is where you'll add the logic to reset nodes
@@ -510,6 +589,11 @@ def main():
                         start = None
                     elif node == end:
                         end = None
+
+                # Actually, Pygame mouse_buttons[1] is the Middle Click (Scroll wheel click)
+                elif mouse_buttons[1]: 
+                    if not node.is_start() and not node.is_end() and not node.is_barrier():
+                        node.make_traffic()
 
     # Once the loop is finished, quit the program safely.
     pygame.quit()
