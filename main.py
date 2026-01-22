@@ -3,6 +3,7 @@
 # Importing necessary libraries
 import pygame
 import sys # This lets us close the window
+from queue import PriorityQueue
 
 # Initialize Pygame
 pygame.init()
@@ -79,6 +80,24 @@ class Node:
     def draw(self, win):
         pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.width))
 
+    def update_neighbours(self, grid):
+        self.neighbors = []
+        # check DOWN
+        if self.row < self.total_rows - 1 and not grid[self.row + 1][self.col].is_barrier():
+            self.neighbors.append(grid[self.row + 1][self.col])
+
+        # Check UP
+        if self.row > 0 and not grid[self.row - 1][self.col].is_barrier():
+            self.neighbors.append(grid[self.row - 1][self.col])
+
+        # Check RIGHT
+        if self.col < self.total_rows - 1 and not grid[self.row][self.col + 1].is_barrier():
+            self.neighbors.append(grid[self.row][self.col + 1])
+
+        # Check LEFT
+        if self.col > 0 and not grid[self.row][self.col - 1].is_barrier():
+            self.neighbors.append(grid[self.row][self.col - 1])
+
 # ----------------------------------------------------
 
 
@@ -136,6 +155,92 @@ def get_clicked_pos(pos, rows, width):
 
     return row, col
 
+# small helper function for manhattan distance calculation in algorithm
+def h(p1, p2):
+    x1, y1 = p1
+    x2, y2 = p2
+    return abs(x1 - x2) + abs(y1 - y2)
+
+def reconstruct_path(came_from, current, draw):
+    # Trace backwards from end to start
+    while current in came_from:
+        current = came_from[current]
+        current.make_path() # Make it TURQUOISE
+        draw()
+
+def algorithm(draw, grid, start, end):
+    # We pass 'draw' as a function so we can call it to update the visuals
+    # count is used to handle cases where two nodes have the same F-score
+    # one added first will get a lower count and be prioritized
+    count = 0
+    # This store the nodes we need to consider
+    open_set = PriorityQueue()
+    # We are putting a tuple in the queue: (f_score, count, node)
+    # The queue automatically sorts by the first item (the F-score)
+    open_set.put((0, count, start))
+    # this dictionary act as map to reconstruct the final path
+    came_from = {}
+    # dictionaries are used to store scores of each node
+    # every node's score is initialized to infinity
+    g_score = {node: float("inf") for row in grid for node in row}
+    g_score[start] = 0
+
+    f_score = {node: float("inf") for row in grid for node in row}
+    # F-score for start is purely the heuristic (distance to end)
+    f_score[start] = h(start.get_pos(), end.get_pos())
+
+    # Create a set to keep track of items in the priority queue (for O(1) lookup)
+    open_set_hash = {start}
+
+    while not open_set.empty():
+        # Allow the user to quit even while the algorithm is running
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        # Get the node with the lowest F-score (highest priority)
+        # .get() returns (f_score, count, node), so we take index [2]
+        current = open_set.get()[2]
+        # Sync our hash set
+        open_set_hash.remove(current)
+
+        # Check if we have found the destination
+        if current == end:
+            reconstruct_path(came_from, end, draw)
+            end.make_end() # Ensure the end node stays purple
+            return True
+
+        # Check all neighbors of the current node
+        for neighbor in current.neighbors:
+            # Calculate the temporary G-score (current G + distance to neighbor)
+            # Distance is always 1 in our grid
+            temp_g_score = g_score[current] + 1
+
+            # If this new path is shorter than the previous known path to this neighbor
+            if temp_g_score < g_score[neighbor]:
+                # Update the path and scores
+                came_from[neighbor] = current
+                g_score[neighbor] = temp_g_score
+                f_score[neighbor] = temp_g_score + h(neighbor.get_pos(), end.get_pos())
+
+                # If the neighbor is not already in the queue to be explored, add it
+                if neighbor not in open_set_hash:
+                    count += 1
+                    open_set.put((f_score[neighbor], count, neighbor))
+                    open_set_hash.add(neighbor)
+                    neighbor.make_open() # Make it GREEN (open set)
+
+        # Update the visual grid
+        draw()
+
+        # If the node we just finished checking is not the start node, 
+        # mark it as closed (RED)
+        if current != start:
+            current.make_closed()
+
+    return False
+
 # The Main Application Loop
 def main():
 
@@ -150,7 +255,7 @@ def main():
 
     run = True
     while run:
-        # drwaing the grid on screen
+        # drawing the grid on screen
         draw(WIN, grid, ROWS, WIDTH)
         # This loop is the "ears" of the program. It listens for user actions.
         for event in pygame.event.get():
@@ -158,6 +263,21 @@ def main():
             if event.type == pygame.QUIT:
                 run = False # ...stop the main loop.
 
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and start and end:
+                    # First, give every node its neighbors
+                    for row in grid:
+                        for node in row:
+                            node.update_neighbours(grid)
+                    
+                    # algorithm called
+                    # algorithm function can now call this lambda function whenever it wants to redraw the screen
+                    algorithm(lambda: draw(WIN, grid, ROWS, WIDTH), grid, start, end)
+            
+                if event.key == pygame.K_c:
+                    start = None
+                    end = None
+                    grid = make_grid(ROWS, WIDTH)  
             
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # mouse click on screen returns tuple(0,0,0) 
