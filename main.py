@@ -119,6 +119,12 @@ def make_grid(rows, width):
 
     return grid
 
+def clear_path(grid):
+    for row in grid:
+        for node in row:
+            # If the node is NOT a start, end, or barrier, reset it to white
+            if not (node.is_start() or node.is_end() or node.is_barrier()):
+                node.reset()
 
 # helper function to draw grid lines
 def draw_grid(win, rows, width):
@@ -134,7 +140,7 @@ def draw_grid(win, rows, width):
 
 # master function to handle all visual updates
 # updated draw function to accept 'visited_nodes'
-def draw(win, grid, rows, width, visited_nodes=0):
+def draw(win, grid, rows, width, visited_nodes=0, path_len=0):
     # wiping window
     win.fill(WHITE)
     # looping through every nodes inside grid
@@ -145,11 +151,13 @@ def draw(win, grid, rows, width, visited_nodes=0):
     # after drawing all nodes, drawing grid lines on top
     draw_grid(win, rows, width)
 
-    # Render the text
-    text = FONT.render(f"Nodes Visited: {visited_nodes}", 1, BLACK)
-    # Draw it at the top left (10, 10)
-    win.blit(text, (10, 10))
+    # Text 1: Nodes Visited
+    text_visited = FONT.render(f"Nodes Visited: {visited_nodes}", 1, BLACK)
+    win.blit(text_visited, (10, 10))
 
+    # Text 2: Path Length
+    text_path = FONT.render(f"Path Length: {path_len}", 1, BLACK)
+    win.blit(text_path, (10, 35)) # Draw it slightly below the first text
     # updating the screen to show the result
     pygame.display.update()
 
@@ -171,11 +179,14 @@ def h(p1, p2):
     return abs(x1 - x2) + abs(y1 - y2)
 
 def reconstruct_path(came_from, current, draw):
+    path_len = 0
     # Trace backwards from end to start
     while current in came_from:
         current = came_from[current]
         current.make_path() # Make it TURQUOISE
+        path_len += 1
         draw()
+    return path_len
 
 def algorithm(draw, grid, start, end):
     # We pass 'draw' as a function so we can call it to update the visuals
@@ -220,9 +231,9 @@ def algorithm(draw, grid, start, end):
 
         # Check if we have found the destination
         if current == end:
-            reconstruct_path(came_from, end, draw)
+            path_len = reconstruct_path(came_from, end, draw)
             end.make_end() # Ensure the end node stays purple
-            return True, nodes_visited
+            return True, nodes_visited, path_len
 
         # Check all neighbors of the current node
         for neighbor in current.neighbors:
@@ -252,7 +263,7 @@ def algorithm(draw, grid, start, end):
         if current != start:
             current.make_closed()
 
-    return False, 0
+    return False, 0, 0
 
 def dijkstra(draw, grid, start, end):
     # Dijkstra is identical to A* but without the heuristic (h-score)
@@ -282,9 +293,9 @@ def dijkstra(draw, grid, start, end):
         nodes_visited += 1
 
         if current == end:
-            reconstruct_path(came_from, end, draw)
+            path_len = reconstruct_path(came_from, end, draw)
             end.make_end()
-            return True, nodes_visited
+            return True, nodes_visited, path_len
 
         for neighbor in current.neighbors:
             temp_g_score = g_score[current] + 1
@@ -305,7 +316,7 @@ def dijkstra(draw, grid, start, end):
         if current != start:
             current.make_closed()
 
-    return False, 0
+    return False, 0, 0
 
 def greedy_bfs(draw, grid, start, end):
     count = 0
@@ -333,9 +344,9 @@ def greedy_bfs(draw, grid, start, end):
         nodes_visited += 1
 
         if current == end:
-            reconstruct_path(came_from, end, draw)
+            path_len = reconstruct_path(came_from, end, draw)
             end.make_end()
-            return True, nodes_visited
+            return True, nodes_visited, path_len
 
         for neighbor in current.neighbors:
             # If we haven't visited this neighbor yet
@@ -355,7 +366,7 @@ def greedy_bfs(draw, grid, start, end):
         if current != start:
             current.make_closed()
 
-    return False, 0
+    return False, 0, 0
 
 def bfs(draw, grid, start, end):
     # BFS uses a simple Queue (FIFO) logic. 
@@ -380,9 +391,9 @@ def bfs(draw, grid, start, end):
         nodes_visited += 1
 
         if current == end:
-            reconstruct_path(came_from, end, draw)
+            path_len = reconstruct_path(came_from, end, draw)
             end.make_end()
-            return True, nodes_visited
+            return True, nodes_visited, path_len
 
         for neighbor in current.neighbors:
             # Simple logic: If we haven't seen it, add it to the queue
@@ -397,7 +408,7 @@ def bfs(draw, grid, start, end):
         if current != start:
             current.make_closed()
 
-    return False, 0
+    return False, 0, 0
 
 # The Main Application Loop
 def main():
@@ -411,11 +422,12 @@ def main():
     start = None
     end = None
     visited_nodes = 0
+    path_len = 0
 
     run = True
     while run:
         # drawing the grid on screen
-        draw(WIN, grid, ROWS, WIDTH, visited_nodes)
+        draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len)
         # This loop is the "ears" of the program. It listens for user actions.
         for event in pygame.event.get():
             # If the user clicks the 'X' button on the window...
@@ -426,33 +438,46 @@ def main():
                 if start and end:
                     # Update neighbors for all algorithms
                     if event.key in [pygame.K_SPACE, pygame.K_d, pygame.K_g, pygame.K_b]:
+                        clear_path(grid)
                         for row in grid:
                             for node in row:
                                 node.update_neighbours(grid)
 
                     # SPACE = A*
                     if event.key == pygame.K_SPACE:
-                        # Capture the return values (flag is True/False, count is the number)
-                        _, visited_nodes = algorithm(lambda visited_nodes=0: draw(WIN, grid, ROWS, WIDTH, visited_nodes), grid, start, end)
+                        _, visited_nodes, path_len = algorithm(
+                            lambda visited_nodes=visited_nodes, path_len=path_len: draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len), 
+                            grid, start, end
+                        )
                     
                     # D = Dijkstra
                     if event.key == pygame.K_d:
-                        _, visited_nodes = dijkstra(lambda visited_nodes=0: draw(WIN, grid, ROWS, WIDTH, visited_nodes), grid, start, end)
+                        _, visited_nodes, path_len = dijkstra(
+                            lambda visited_nodes=visited_nodes, path_len=path_len: draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len), 
+                            grid, start, end
+                        )
 
                     # G = Greedy BFS
                     if event.key == pygame.K_g:
-                        _, visited_nodes = greedy_bfs(lambda visited_nodes=0: draw(WIN, grid, ROWS, WIDTH, visited_nodes), grid, start, end)
+                        _, visited_nodes, path_len = greedy_bfs(
+                            lambda visited_nodes=visited_nodes, path_len=path_len: draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len), 
+                            grid, start, end
+                        )
 
                     # B = Breadth-First Search
                     if event.key == pygame.K_b:
-                        _, visited_nodes = bfs(lambda visited_nodes=0: draw(WIN, grid, ROWS, WIDTH, visited_nodes), grid, start, end)
+                        _, visited_nodes, path_len = bfs(
+                            lambda visited_nodes=visited_nodes, path_len=path_len: draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len), 
+                            grid, start, end
+                        )
 
                 # Clear screen
                 if event.key == pygame.K_c:
                     start = None
                     end = None
                     grid = make_grid(ROWS, WIDTH)
-                    visited_nodes = 0 # <--- Reset the counter to 0 on clear
+                    visited_nodes = 0
+                    path_len = 0
             
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # mouse click on screen returns tuple(0,0,0) 
