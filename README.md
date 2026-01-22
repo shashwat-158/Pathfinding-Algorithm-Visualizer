@@ -3,7 +3,7 @@
 An interactive Python application for visualizing and comparing pathfinding algorithms like A*, Dijkstra's, BFS, and Greedy Best-First Search. This tool demonstrates how different algorithms handle weighted graphs versus unweighted exploration.
 
 ![Screenshot of the pathfinding visualizer in action]
-*(A screenshot or GIF will be added here once the project is functional)*
+![Pathfinding Demo](assets/demo.gif)
 
 ---
 

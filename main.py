@@ -185,9 +185,53 @@ def generate_random_maze(grid, draw):
     
     draw()
 
+def draw_instructions(win, width, height):
+    # 1. Create a semi-transparent surface
+    s = pygame.Surface((width, height))
+    s.set_alpha(220) # Transparency level (0-255)
+    s.fill(WHITE)
+    win.blit(s, (0, 0))
+
+    # 2. Define the text content
+    instructions = [
+        "--- CONTROLS ---",
+        "",
+        "[Mouse Controls]",
+        "Left Click: Place Start / End / Barriers",
+        "Middle Click (or 'T' + Click): Place Traffic (High Cost)",
+        "Right Click: Erase Node",
+        "",
+        "[Algorithms]",
+        "SPACE: A* Algorithm",
+        "D: Dijkstra's Algorithm",
+        "B: Breadth-First Search (BFS)",
+        "G: Greedy Best-First Search",
+        "",
+        "[Grid Options]",
+        "M: Generate Random Maze",
+        "C: Clear Board",
+        "",
+        "Press 'I' to Close this Menu"
+    ]
+
+    # 3. Render and center the text
+    # We use a slightly smaller font for the menu
+    menu_font = pygame.font.SysFont('comicsans', 25)
+    
+    total_height = len(instructions) * 30
+    start_y = (height - total_height) // 2
+
+    for i, line in enumerate(instructions):
+        # Color the headers (lines starting with --- or []) slightly differently
+        color = PURPLE if line.startswith("[") or line.startswith("-") else BLACK
+        
+        text = menu_font.render(line, 1, color)
+        # Center horizontally
+        text_rect = text.get_rect(center=(width // 2, start_y + i * 30))
+        win.blit(text, text_rect)
 # master function to handle all visual updates
 # updated draw function to accept 'visited_nodes'
-def draw(win, grid, rows, width, visited_nodes=0, path_len=0, algo_name=""):
+def draw(win, grid, rows, width, visited_nodes=0, path_len=0, algo_name="", show_instructions=False):
     # wiping window
     win.fill(WHITE)
     # looping through every nodes inside grid
@@ -206,9 +250,18 @@ def draw(win, grid, rows, width, visited_nodes=0, path_len=0, algo_name=""):
     text_path = FONT.render(f"Path Length: {path_len}", 1, PURPLE)
     win.blit(text_path, (10, 35)) # Draw it slightly below the first text
 
-    # Text 3: Algorithm Name (Displayed in Red for visibility)
+    # Text 3: Algorithm Name
     text_algo = FONT.render(f"Algorithm: {algo_name}", 1, ORANGE)
     win.blit(text_algo, (10, 60)) # Draw it below Path Length
+
+    # Instruction Hint
+    text_hint = FONT.render("Press 'I' for Controls", 1, GREY)
+    # Draw it at the bottom right
+    win.blit(text_hint, (width - text_hint.get_width() - 10, 10))
+
+    # NEW: Draw the overlay if requested
+    if show_instructions:
+        draw_instructions(win, width, width) # Assuming square window (width=height)
 
     # updating the screen to show the result
     pygame.display.update()
@@ -480,10 +533,13 @@ def main():
     path_len = 0
     algo_name = "Pick an Algorithm" # Default text
 
+    # state variable for the menu
+    show_instructions = True # Show it by default on start
+
     run = True
     while run:
         # drawing the grid on screen
-        draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name)
+        draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name, show_instructions)
         # This loop is the "ears" of the program. It listens for user actions.
         for event in pygame.event.get():
             # If the user clicks the 'X' button on the window...
@@ -491,68 +547,75 @@ def main():
                 run = False # ...stop the main loop.
 
             if event.type == pygame.KEYDOWN:
-                if start and end:
-                    # Update neighbors for all algorithms
-                    if event.key in [pygame.K_SPACE, pygame.K_d, pygame.K_g, pygame.K_b]:
-                        clear_path(grid)
-                        for row in grid:
-                            for node in row:
-                                node.update_neighbours(grid)
+                # toggle Instructions
+                if event.key == pygame.K_i:
+                    show_instructions = not show_instructions
 
-                    # SPACE = A*
-                    if event.key == pygame.K_SPACE:
-                        algo_name = "A* Algorithm"
-                        _, visited_nodes, path_len = algorithm(
-                            lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
-                            draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
-                            grid, start, end
-                        )
+                # Only allow other inputs if the menu is CLOSED
+                if not show_instructions:
+                    if start and end:
+                        # Update neighbors for all algorithms
+                        if event.key in [pygame.K_SPACE, pygame.K_d, pygame.K_g, pygame.K_b]:
+                            clear_path(grid)
+                            for row in grid:
+                                for node in row:
+                                    node.update_neighbours(grid)
+
+                        # SPACE = A*
+                        if event.key == pygame.K_SPACE:
+                            algo_name = "A* Algorithm"
+                            _, visited_nodes, path_len = algorithm(
+                                lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
+                                draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
+                                grid, start, end
+                            )
+                        
+                        # D = Dijkstra
+                        if event.key == pygame.K_d:
+                            algo_name = "Dijkstra's Algorithm"
+                            _, visited_nodes, path_len = dijkstra(
+                                lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
+                                draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
+                                grid, start, end
+                            )
+
+                        # G = Greedy BFS
+                        if event.key == pygame.K_g:
+                            algo_name = "Greedy Best-First Search"
+                            _, visited_nodes, path_len = greedy_bfs(
+                                lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
+                                draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
+                                grid, start, end
+                            )
+
+                        # B = Breadth-First Search
+                        if event.key == pygame.K_b:
+                            algo_name = "Breadth-First Search"
+                            _, visited_nodes, path_len = bfs(
+                                lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
+                                draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
+                                grid, start, end
+                            )
+
+                    # Clear screen ('C')
+                    if event.key == pygame.K_c:
+                        start = None
+                        end = None
+                        grid = make_grid(ROWS, WIDTH)
+                        visited_nodes = 0
+                        path_len = 0
+                        algo_name = "Pick an Algorithm"
                     
-                    # D = Dijkstra
-                    if event.key == pygame.K_d:
-                        algo_name = "Dijkstra's Algorithm"
-                        _, visited_nodes, path_len = dijkstra(
-                            lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
-                            draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
-                            grid, start, end
-                        )
-
-                    # G = Greedy BFS
-                    if event.key == pygame.K_g:
-                        algo_name = "Greedy Best-First Search"
-                        _, visited_nodes, path_len = greedy_bfs(
-                            lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
-                            draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
-                            grid, start, end
-                        )
-
-                    # B = Breadth-First Search
-                    if event.key == pygame.K_b:
-                        algo_name = "Breadth-First Search"
-                        _, visited_nodes, path_len = bfs(
-                            lambda visited_nodes=visited_nodes, path_len=path_len, algo_name=algo_name: 
-                            draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name),
-                            grid, start, end
-                        )
-
-                # Clear screen ('C')
-                if event.key == pygame.K_c:
-                    start = None
-                    end = None
-                    grid = make_grid(ROWS, WIDTH)
-                    visited_nodes = 0
-                    path_len = 0
-                    algo_name = "Pick an Algorithm"
-                
-                # Generate Random Maze ('M')
-                if event.key == pygame.K_m:
-                    # Reset stats so the new maze looks clean
-                    visited_nodes = 0
-                    path_len = 0
-                    algo_name = "Pick an Algorithm"
-                    generate_random_maze(grid, lambda: draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name))
+                    # Generate Random Maze ('M')
+                    if event.key == pygame.K_m:
+                        # Reset stats so the new maze looks clean
+                        visited_nodes = 0
+                        path_len = 0
+                        algo_name = "Pick an Algorithm"
+                        generate_random_maze(grid, lambda: draw(WIN, grid, ROWS, WIDTH, visited_nodes, path_len, algo_name))
             
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            # Only allow mouse clicks if menu is CLOSED
+            if not show_instructions and event.type == pygame.MOUSEBUTTONDOWN:
                 # mouse click on screen returns tuple(0,0,0) 
                 mouse_buttons = pygame.mouse.get_pressed()
                 # gives (x,y) coordinate of mouse click
