@@ -1,6 +1,6 @@
 # Pathfinding Algorithm Visualizer
 
-An interactive Python application for visualizing and comparing pathfinding algorithms like A*, Dijkstra's, and Breadth-First Search (BFS) using the Pygame library.
+An interactive Python application for visualizing and comparing pathfinding algorithms like A*, Dijkstra's, and Greedy Best-First Search using the Pygame library.
 
 ![Screenshot of the pathfinding visualizer in action]
 *(A screenshot or GIF will be added here once the project is functional)*
@@ -10,9 +10,12 @@ An interactive Python application for visualizing and comparing pathfinding algo
 ## Key Features
 
 - **Interactive Grid:** Create your own mazes by drawing barrier walls with the mouse.
-- **Algorithm Selection:** Choose between A*, Dijkstra's, and BFS to find the shortest path.
-- **Real-Time Visualization:** Watch the algorithms explore the grid step-by-step.
-- **Performance Benchmarking:** Compare the efficiency of the algorithms by tracking the number of "nodes explored".
+- **Multiple Algorithms:** Visualize how different algorithms "think":
+    - **A* (A-Star):** The most efficient pathfinding algorithm using heuristics.
+    - **Dijkstra's Algorithm:** Guarantees the shortest path but explores every direction evenly.
+    - **Greedy Best-First Search:** A faster, heuristic-heavy algorithm that doesn't always guarantee the shortest path.
+- **Real-Time Visualization:** Watch the algorithms explore the grid step-by-step with color-coded nodes (Open, Closed, Path).
+- **Restart & Clear:** easily reset nodes or wipe the entire board to try new patterns.
 
 ## Tech Stack
 
@@ -27,7 +30,7 @@ An interactive Python application for visualizing and comparing pathfinding algo
     ```
 2.  Navigate into the project directory:
     ```bash
-    cd pathfinding-visualizer
+    cd Heuristic-Search-Algorithm-Analysis-Platform
     ```
 3.  Install the required dependencies:
     ```bash
@@ -40,7 +43,14 @@ An interactive Python application for visualizing and comparing pathfinding algo
     ```bash
     python main.py
     ```
-2.  **Left-click** on the grid to place the **start node** (orange), **end node** (purple), and **barrier walls** (black).
-3.  **Right-click** to erase any node.
-4.  Press the **spacebar** to start the selected pathfinding algorithm.
-5.  Press the **'c' key** to clear the board and start over.
+2.  **Draw the Grid:**
+    - **Left-Click:** Place the **Start Node** (Orange) first, then the **End Node** (Purple), and finally draw **Barrier Walls** (Black).
+    - **Right-Click:** Erase any node you click on.
+
+3.  **Run an Algorithm:**
+    - Press **SPACE** to run **A* Algorithm**.
+    - Press **D** to run **Dijkstra's Algorithm**.
+    - Press **G** to run **Greedy Best-First Search**.
+
+4.  **Reset:**
+    - Press **C** to clear the board and start over.
