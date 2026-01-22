@@ -1,6 +1,6 @@
 # Pathfinding Algorithm Visualizer
 
-An interactive Python application for visualizing and comparing pathfinding algorithms like A*, Dijkstra's, and Greedy Best-First Search using the Pygame library.
+An interactive Python application for visualizing and comparing pathfinding algorithms like A*, Dijkstra's, BFS, and Greedy Best-First Search using the Pygame library.
 
 ![Screenshot of the pathfinding visualizer in action]
 *(A screenshot or GIF will be added here once the project is functional)*
@@ -13,9 +13,11 @@ An interactive Python application for visualizing and comparing pathfinding algo
 - **Multiple Algorithms:** Visualize how different algorithms "think":
     - **A* (A-Star):** The most efficient pathfinding algorithm using heuristics.
     - **Dijkstra's Algorithm:** Guarantees the shortest path but explores every direction evenly.
+    - **Breadth-First Search (BFS):** A fundamental algorithm that guarantees the shortest path in unweighted grids but explores blindly.
     - **Greedy Best-First Search:** A faster, heuristic-heavy algorithm that doesn't always guarantee the shortest path.
 - **Real-Time Visualization:** Watch the algorithms explore the grid step-by-step with color-coded nodes (Open, Closed, Path).
-- **Restart & Clear:** easily reset nodes or wipe the entire board to try new patterns.
+- **Performance Benchmarking:** Real-time counters display **Nodes Visited** and **Path Length** to objectively compare the efficiency of each algorithm.
+- **Soft Reset:** Automatically clears the previous path when running a new algorithm, allowing for rapid comparison on the same maze.
 
 ## Tech Stack
 
@@ -51,6 +53,7 @@ An interactive Python application for visualizing and comparing pathfinding algo
     - Press **SPACE** to run **A* Algorithm**.
     - Press **D** to run **Dijkstra's Algorithm**.
     - Press **G** to run **Greedy Best-First Search**.
+    - Press **B** to run **Breadth-First Search**.
 
 4.  **Reset:**
-    - Press **C** to clear the board and start over.
+    - Press **C** to clear the entire board and start over.
