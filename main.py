@@ -290,6 +290,52 @@ def dijkstra(draw, grid, start, end):
 
     return False
 
+def greedy_bfs(draw, grid, start, end):
+    count = 0
+    open_set = PriorityQueue()
+    # Priority is purely the H-score (heuristic)
+    open_set.put((0, count, start))
+    came_from = {}
+    
+    # We still keep track of visited nodes to avoid infinite loops, 
+    # but we don't strictly need G-score for sorting. 
+    # We just need a set to keep track of what we've added.
+    open_set_hash = {start}
+
+    while not open_set.empty():
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        current = open_set.get()[2]
+        open_set_hash.remove(current)
+
+        if current == end:
+            reconstruct_path(came_from, end, draw)
+            end.make_end()
+            return True
+
+        for neighbor in current.neighbors:
+            # If we haven't visited this neighbor yet
+            if neighbor not in came_from and neighbor != start:
+                came_from[neighbor] = current
+                
+                if neighbor not in open_set_hash:
+                    count += 1
+                    # Score is ONLY the Heuristic
+                    score = h(neighbor.get_pos(), end.get_pos())
+                    open_set.put((score, count, neighbor))
+                    open_set_hash.add(neighbor)
+                    neighbor.make_open()
+
+        draw()
+
+        if current != start:
+            current.make_closed()
+
+    return False
+
 # The Main Application Loop
 def main():
 
@@ -313,21 +359,24 @@ def main():
                 run = False # ...stop the main loop.
 
             if event.type == pygame.KEYDOWN:
-                # Common setup for both algorithms
                 if start and end:
-                     # Update neighbors only when we are ready to run
-                    if event.key == pygame.K_SPACE or event.key == pygame.K_d:
+                    # Common helper to update neighbors
+                    if event.key in [pygame.K_SPACE, pygame.K_d, pygame.K_g]:
                         for row in grid:
                             for node in row:
                                 node.update_neighbours(grid)
 
-                    # Press SPACE for A* (A-Star)
+                    # SPACE = A*
                     if event.key == pygame.K_SPACE:
                         algorithm(lambda: draw(WIN, grid, ROWS, WIDTH), grid, start, end)
                     
-                    # Press 'D' for Dijkstra
+                    # D = Dijkstra
                     if event.key == pygame.K_d:
                         dijkstra(lambda: draw(WIN, grid, ROWS, WIDTH), grid, start, end)
+
+                    # G = Greedy Best-First
+                    if event.key == pygame.K_g:
+                        greedy_bfs(lambda: draw(WIN, grid, ROWS, WIDTH), grid, start, end)
 
                 # Clear screen
                 if event.key == pygame.K_c:
